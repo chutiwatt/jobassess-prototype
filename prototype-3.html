@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prototype Website</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .menu-button {
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .menu-box {
+            display: none; /* Initially hide all menu boxes */
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #chartContainer {
+            /* Set a minimum height and make it responsive */
+            min-height: 300px;
+            height: auto;
+            max-height: 500px;
+            aspect-ratio: 1 / 1;
+        }
+
+        #chatBox {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            height: 150px;
+            overflow: auto;
+        }
+
+        /* Add some responsive design to the chart container */
+        @media (max-width: 768px) {
+            #chartContainer {
+                min-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <button class="menu-button" onclick="showSection('upload')">Upload File</button>
+            <button class="menu-button" onclick="showSection('chart')">Display Chart</button>
+            <button class="menu-button" onclick="showSection('chat')">Chat Bot</button>
+            <button class="menu-button" onclick="showSection('avatar')">Avatar Speaking</button>
+        </div>
+        <img src="https://i.ibb.co/GF5Mvrw/Untitled1-1.jpg" alt="Logo" style="height: 50px;">
+    </header>
+
+    <div id="upload" class="menu-box">
+        <h3>File Upload</h3>
+        <input type="file" id="fileInput">
+    </div>
+
+    <div id="chart" class="menu-box">
+        <h3>Chart Display</h3>
+        <canvas id="chartContainer"></canvas>
+    </div>
+
+    <div id="chat" class="menu-box">
+        <h3>Chat Bot</h3>
+        <div id="chatBox"></div>
+        <input type="text" id="chatInput">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div id="avatar" class="menu-box">
+        <h3>Question 1</h3>
+        <h4>Please press play when you are ready to hear first question</h4>
+        <!-- <video x-webkit-airplay="allow" webkit-playsinline="webkit-playsinline" controls="" style="width: 100%;"><source src="https://video.wixstatic.com/video/c2936d_670e5788ca3048deb72583fef43beadc/720p/mp4/file.mp4" type="video/mp4"></video>
+         -->
+         <div id="videoContainer" style="position: relative;">
+            <video id="videoPlayer" x-webkit-airplay="allow" webkit-playsinline="webkit-playsinline" controls style="width: 100%;">
+                <source src="https://video.wixstatic.com/video/c2936d_670e5788ca3048deb72583fef43beadc/720p/mp4/file.mp4" type="video/mp4">
+            </video>
+            <img id="playButton" src="https://i.ibb.co/SJ21qz3/play-button.png" alt="Play" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: pointer;">
+        </div>
+        <p>Can you describe a situation from your previous work experience<br />
+            where you had to manage a sudden problem that arose, <br />
+            outline how you organized your workload to meet a tight deadline?</p>
+        <!-- <button onclick="speak('Hello, I am your avatar!')">Speak</button> -->
+        <div id="answer" class="menu-box">
+            <h3>Record Your Answer</h3>
+            <button id="recordButton">Start Recording</button>
+            <button id="stopButton" disabled>Stop Recording</button>
+            <audio id="audioPlayback" controls></audio>
+        </div>
+    </div>
+    
+    
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+    
+        document.getElementById('recordButton').addEventListener('click', function() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks);
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        const audio = document.getElementById('audioPlayback');
+                        audio.src = audioUrl;
+                        // Reset the chunks for the next recording
+                        audioChunks = [];
+                    };
+                    mediaRecorder.start();
+                    document.getElementById('recordButton').disabled = true;
+                    document.getElementById('stopButton').disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error accessing the microphone', error);
+                });
+        });
+    
+        document.getElementById('stopButton').addEventListener('click', function() {
+            mediaRecorder.stop();
+            document.getElementById('recordButton').disabled = false;
+            document.getElementById('stopButton').disabled = true;
+        });
+    </script>
+    
+    <script>
+        document.getElementById('playButton').addEventListener('click', function() {
+    var videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.play();
+    this.style.display = 'none';
+});
+
+    </script>
+    <script>
+        // Function to show the selected section and hide others
+        function showSection(sectionId) {
+            var sections = document.getElementsByClassName('menu-box');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].style.display = 'none';
+            }
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        // File Upload and Radar Chart Display
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var content = e.target.result;
+                var lines = content.split('\n');
+                var labels = lines[0].split(',').slice(1);
+                var data = [];
+                for (var i = 1; i < lines.length; i++) {
+                    var row = lines[i].split(',');
+                    var rowData = row.slice(1).map(Number);
+                    data.push({
+                        label: row[0],
+                        data: rowData,
+                        fill: true
+                    });
+                }
+                createRadarChart(labels, data);
+            };
+            reader.readAsText(file);
+        });
+
+        function createRadarChart(labels, data) {
+            var ctx = document.getElementById('chartContainer').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: data
+                },
+                options: {
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    }
+                }
+            });
+        }
+
+        // Chat Bot Functionality
+        function sendMessage() {
+            var input = document.getElementById('chatInput');
+            var message = input.value;
+            input.value = '';
+
+            var chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += '<div>User: ' + message + '</div>';
+
+            var botMessage = 'I heard: ' + message;
+            chatBox.innerHTML += '<div>Bot: ' + botMessage + '</div>';
+
+            speak(botMessage);
+        }
+
+        // Text-to-Speech and Avatar Animation
+        function speak(text) {
+            var utterance = new SpeechSynthesisUtterance(text);
+            utterance.onstart = function() {
+                document.getElementById('avatarImage').src = 'talking_avatar.png';
+            };
+            utterance.onend = function() {
+                document.getElementById('avatarImage').src = 'normal_avatar.png';
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Initialize by showing the upload section
+        showSection('upload');
+    </script>
+</body>
+</html>
